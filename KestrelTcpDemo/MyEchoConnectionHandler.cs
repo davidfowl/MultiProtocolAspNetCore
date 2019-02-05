@@ -7,6 +7,7 @@ namespace KestrelTcpDemo
     public class MyEchoConnectionHandler : ConnectionHandler
     {
         private readonly ILogger<MyEchoConnectionHandler> _logger;
+
         public MyEchoConnectionHandler(ILogger<MyEchoConnectionHandler> logger)
         {
             _logger = logger;
@@ -14,41 +15,27 @@ namespace KestrelTcpDemo
 
         public override async Task OnConnectedAsync(ConnectionContext connection)
         {
-            try
+            _logger.LogInformation(connection.ConnectionId + " connected");
+
+            while (true)
             {
-                _logger.LogInformation(connection.ConnectionId + " connected");
+                var result = await connection.Transport.Input.ReadAsync();
+                var buffer = result.Buffer;
 
-                while (true)
+                foreach (var segment in buffer)
                 {
-                    var result = await connection.Transport.Input.ReadAsync();
-                    var buffer = result.Buffer;
-
-                    foreach (var segment in buffer)
-                    {
-                        await connection.Transport.Output.WriteAsync(segment);
-                    }
-
-                    if (result.IsCompleted)
-                    {
-                        break;
-                    }
-
-                    connection.Transport.Input.AdvanceTo(buffer.End);
+                    await connection.Transport.Output.WriteAsync(segment);
                 }
 
-                _logger.LogInformation(connection.ConnectionId + " disconnected");
-            }
-            finally
-            {
-                // Today, Kestrel expects the ConnectionHandler to complete the transport pipes
-                // this will be resolved in a future release
+                if (result.IsCompleted)
+                {
+                    break;
+                }
 
-                // We're done reading
-                connection.Transport.Input.Complete();
-
-                // We're done writing
-                connection.Transport.Output.Complete();
+                connection.Transport.Input.AdvanceTo(buffer.End);
             }
+
+            _logger.LogInformation(connection.ConnectionId + " disconnected");
         }
     }
 }
