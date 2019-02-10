@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore;
+﻿using System.Net;
+using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Hosting;
 
@@ -13,6 +14,11 @@ namespace KestrelTcpDemo
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
+                .ConfigureServices(services =>
+                {
+                    // This shows how a custom framework could plug in an experience without using Kestrel APIs directly
+                    services.AddFramework(new IPEndPoint(IPAddress.Loopback, 8009));
+                })
                 .UseKestrel(options =>
                 {
                     // TCP 8007
